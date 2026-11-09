@@ -144,8 +144,10 @@
 		switch@1f {
 			compatible = "mediatek,mt7531";
 			reg = <31>;
-			/* Kwrt / c8-668gl: ACTIVE_HIGH, X-WRT's c8-660: ACTIVE_LOW.
-			 * If no lan port comes up, flip this polarity. */
+			/* Vanilla kernel convention: upstream uses ACTIVE_HIGH on every
+			 * MT7981 board with this switch (c8-668gl, rax3000m, 360t7).
+			 * X-WRT's ACTIVE_LOW goes together with their kernel patch
+			 * "net: dsa: mt7530: fix reset polarity" (eaee5d2f), not usable here. */
 			reset-gpios = <&pio 39 GPIO_ACTIVE_HIGH>;
 			interrupt-controller;
 			#interrupt-cells = <1>;
