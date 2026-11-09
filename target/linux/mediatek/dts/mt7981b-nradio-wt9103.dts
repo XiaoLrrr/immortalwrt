@@ -5,9 +5,10 @@
  * 3x GbE on MT7531 + 1x 2.5G on switch port 5, 2.5G WAN on gmac1,
  * 512 MiB SPI-NAND, M.2 5G module on USB (powered by cpe-pwr).
  *
- * Layout/PHY/polarity follow the two existing ports of this board:
- *   - Kwrt (openwrt.ai) 24.10: devices/mediatek_filogic/patches/24-nradio-c8-660.patch
- *   - X-WRT 24.10: target/linux/mediatek/dts/mt7981b-nradio-c8-660.dts
+ * Hardware values (GPIOs, PHY, polarity) follow
+ * hanwckf/immortalwrt-mt798x: mt7981-nradio-wt9103{,-512m}.dts, which comes from the
+ * vendor side. Layout/board-plumbing cross-checked against the 24.10 ports
+ * (Kwrt openwrt.ai patch 24-nradio-c8-660, X-WRT mt7981b-nradio-c8-660.dts).
  */
 
 /dts-v1/;
@@ -64,7 +65,8 @@
 		button-wps {
 			label = "wps";
 			linux,code = <KEY_WPS_BUTTON>;
-			gpios = <&pio 9 GPIO_ACTIVE_LOW>;
+			/* HIGH per hanwckf's vendor-derived DTS; Kwrt/X-WRT use LOW */
+			gpios = <&pio 9 GPIO_ACTIVE_HIGH>;
 		};
 	};
 
@@ -125,20 +127,24 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		/* both 2.5G PHYs (MaxLinear) share one reset pulse */
-		reset-gpios = <&pio 7 GPIO_ACTIVE_LOW>, <&pio 8 GPIO_ACTIVE_LOW>;
-		reset-delay-us = <600>;
-		reset-post-delay-us = <20000>;
-
+		/* 2.5G ports: MaxLinear GPY211B (PHY ID 0x67c9de0a), own reset GPIO each.
+		 * Values taken from hanwckf/immortalwrt-mt798x (mt7981-nradio-wt9103.dts). */
 		phy5: ethernet-phy@5 {
-			compatible = "ethernet-phy-ieee802.3-c45";
+			compatible = "ethernet-phy-id67c9.de0a";
 			reg = <5>;
-			mxl,led-config = <0x3f0 0x330 0x0 0x0>;
+			phy-mode = "2500base-x";
+			reset-gpios = <&pio 7 GPIO_ACTIVE_LOW>;
+			reset-assert-us = <600>;
+			reset-deassert-us = <20000>;
 		};
 
 		phy21: ethernet-phy@21 {
-			compatible = "ethernet-phy-ieee802.3-c45";
+			compatible = "ethernet-phy-id67c9.de0a";
 			reg = <21>;
+			phy-mode = "2500base-x";
+			reset-gpios = <&pio 8 GPIO_ACTIVE_LOW>;
+			reset-assert-us = <600>;
+			reset-deassert-us = <20000>;
 		};
 
 		switch@1f {
