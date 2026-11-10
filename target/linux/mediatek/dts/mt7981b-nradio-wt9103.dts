@@ -37,6 +37,10 @@
 	};
 
 	/* 5G module power rail and SIM slot select, driven from userspace */
+	/* 5G module power rail and SIM slot select, exported to userspace.
+	 * The "gpio-export" driver ships in OpenWrt's generic patch
+	 * 800-GPIO-add-named-gpio-exports (built via CONFIG_GPIO_SYSFS),
+	 * so no extra package is required. */
 	gpio-export {
 		compatible = "gpio-export";
 
