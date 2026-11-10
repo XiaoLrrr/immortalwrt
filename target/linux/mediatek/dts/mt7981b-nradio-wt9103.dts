@@ -124,14 +124,10 @@
 		compatible = "mediatek,eth-mac";
 		reg = <1>;
 		phy-mode = "2500base-x";
-
-		/* WAN: fixed 2.5G link, same as the vendor 2nd-system DTS.
-		 * phy21 is still probed below but not attached to the MAC. */
-		fixed-link {
-			speed = <2500>;
-			full-duplex;
-			pause;
-		};
+		/* WAN 2.5G port. NRadio's own 2nd-system DTS uses fixed-link here and
+		 * leaves PHY21 unattached; upstream c8-668gl (same GPY211 PHY) wires
+		 * the PHY up instead, which keeps link/speed reporting working. */
+		phy-handle = <&phy21>;
 	};
 
 	mdio: mdio-bus {
