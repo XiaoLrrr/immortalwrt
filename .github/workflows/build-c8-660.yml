@@ -36,8 +36,17 @@ jobs:
 
       - name: Feeds
         run: |
+          # QModem (5G module manager) as an extra feed
+          echo "src-git qmodem https://github.com/FUjr/QModem.git;main" >> feeds.conf.default
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+
+      - name: Extra packages
+        run: |
+          # OpenClash ships its LuCI app as a plain package dir, no feed
+          git clone --depth 1 https://github.com/vernesong/OpenClash.git /tmp/openclash
+          cp -r /tmp/openclash/luci-app-openclash package/
+          ls package/luci-app-openclash
 
       - name: Configure
         run: |
@@ -49,12 +58,17 @@ jobs:
           CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
           CONFIG_PACKAGE_luci-app-package-manager=y
           CONFIG_PACKAGE_uqmi=y
+          CONFIG_PACKAGE_luci-app-qmodem-next=y
+          CONFIG_PACKAGE_luci-app-openclash=y
           CONFIG_PACKAGE_kmod-usb-serial-option=y
           CONFIG_PACKAGE_kmod-usb-net-qmi-wwan=y
           EOF
           make defconfig
           grep -q '^CONFIG_TARGET_mediatek_filogic_DEVICE_nradio_c8-660=y' .config \
             || { echo "device profile not selected"; exit 1; }
+          for sym in luci-app-openclash luci-app-qmodem-next qmodem; do
+            grep -q "^CONFIG_PACKAGE_$sym=y" .config || { echo "package $sym not selected"; exit 1; }
+          done
           grep -E 'CONFIG_TARGET_(BOARD|SUBTARGET)|DEVICE_nradio|CONFIG_PACKAGE_luci=' .config
 
       - name: Download sources
