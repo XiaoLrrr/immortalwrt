@@ -5,10 +5,11 @@
  * 3x GbE on MT7531 + 1x 2.5G on switch port 5, 2.5G WAN on gmac1,
  * 512 MiB SPI-NAND, M.2 5G module on USB (powered by cpe-pwr).
  *
- * Hardware values (GPIOs, PHY, polarity) follow
- * hanwckf/immortalwrt-mt798x: mt7981-nradio-wt9103{,-512m}.dts, which comes from the
- * vendor side. Layout/board-plumbing cross-checked against the 24.10 ports
- * (Kwrt openwrt.ai patch 24-nradio-c8-660, X-WRT mt7981b-nradio-c8-660.dts).
+ * Pin map / PHY / partition offsets come from NRadio's own second-system DTS
+ * (mt7981-nradio-wt9103-2nd.dts + mt7981-nradio-snand-2nd.dtsi, published with
+ * "鲲鹏双系统第二系统开发适配指南"); hanwckf's mt7981-nradio-wt9103{,-512m}.dts
+ * agrees except for the WPS polarity. Only difference here: single-system flash
+ * layout (one ubi instead of ubi_1st + app_data + ubi_2nd).
  */
 
 /dts-v1/;
@@ -69,8 +70,7 @@
 		button-wps {
 			label = "wps";
 			linux,code = <KEY_WPS_BUTTON>;
-			/* HIGH per hanwckf's vendor-derived DTS; Kwrt/X-WRT use LOW */
-			gpios = <&pio 9 GPIO_ACTIVE_HIGH>;
+			gpios = <&pio 9 GPIO_ACTIVE_LOW>;
 		};
 	};
 
@@ -124,7 +124,14 @@
 		compatible = "mediatek,eth-mac";
 		reg = <1>;
 		phy-mode = "2500base-x";
-		phy-handle = <&phy21>;
+
+		/* WAN: fixed 2.5G link, same as the vendor 2nd-system DTS.
+		 * phy21 is still probed below but not attached to the MAC. */
+		fixed-link {
+			speed = <2500>;
+			full-duplex;
+			pause;
+		};
 	};
 
 	mdio: mdio-bus {
@@ -248,9 +255,8 @@
 			};
 
 			factory: partition@180000 {
-				label = "Factory";
+				label = "factory";
 				reg = <0x180000 0x180000>;
-				read-only;
 
 				nvmem-layout {
 					compatible = "fixed-layout";
@@ -274,11 +280,12 @@
 				read-only;
 			};
 
-			/* single system: one ubi covering everything after FIP
-			 * (vendor layout had ubi_oem 64M + app_data 16M + ubi here) */
+			/* Single system: one ubi over the whole tail.
+			 * Vendor layout would be ubi(ubi_1st) 64M + app_data 16M + ubi_2nd
+			 * 0x1AA80000 here; those three are merged on purpose. */
 			partition@580000 {
 				label = "ubi";
-				reg = <0x580000 0x1f400000>;
+				reg = <0x580000 0x1fa80000>;
 				compatible = "linux,ubi";
 			};
 		};
