@@ -84,8 +84,6 @@ mediatek_setup_interfaces()
 	netcore,n60|\
 	netcore,n60-pro|\
 	nradio,c8-668gl|\
-	nradio,c8-660|\
-	nradio,wt9103|\
 	ruijie,rg-x60-pro|\
 	unielec,u7981-01*|\
 	wavlink,wl-wn536ax6-a|\
@@ -93,6 +91,11 @@ mediatek_setup_interfaces()
 	zbtlink,zbt-z8102ax-v2|\
 	zbtlink,zbt-z8106ax-s)
 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4" "eth1"
+		;;
+	nradio,c8-660|\
+	nradio,wt9103)
+		ucidef_set_interface "lan" device "lan1 lan2 lan3 lan4" protocol "static" ipaddr "192.168.66.1"
+		ucidef_set_interface_wan "eth1"
 		;;
 	zbtlink,zbt-z8106ax-t)
 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4" "eth1 wwan"
@@ -319,7 +322,8 @@ mediatek_setup_macs()
 		;;
 	nradio,c8-660|\
 	nradio,wt9103)
-		lan_mac=$(mtd_get_mac_ascii bdinfo "fac_mac ")
+		lan_mac=$(strings "$(find_mtd_chardev bdinfo)" 2>/dev/null | sed -n 's/.*fac_mac *= *\([0-9A-Fa-f:]\{17\}\).*/\1/p' | head -n 1)
+		lan_mac=$(macaddr_canonicalize "$lan_mac")
 		[ -n "$lan_mac" ] && {
 			wan_mac=$(macaddr_add "$lan_mac" 2)
 			label_mac=$lan_mac

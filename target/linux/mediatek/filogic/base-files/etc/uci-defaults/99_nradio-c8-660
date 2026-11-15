@@ -1,0 +1,24 @@
+. /lib/functions.sh
+
+case "$(board_name)" in
+	nradio,c8-660|\
+	nradio,wt9103)
+		[ "$(uci -q get system.@system[0].hostname)" = "ImmortalWrt" ] && {
+			uci -q set system.@system[0].hostname="NRadio-C8-660"
+			uci -q commit system
+		}
+
+		uci -q batch <<-EOF
+			set network.globals="globals"
+			set network.globals.packet_steering="1"
+			commit network
+		EOF
+
+		if [ -f /etc/config/irqbalance ]; then
+			uci -q set irqbalance.irqbalance.enabled="1"
+			uci -q commit irqbalance
+		fi
+		;;
+esac
+
+exit 0

@@ -2,8 +2,8 @@
 /*
  * NRadio C8-660 (ODM board WT9103, MT7981B)
  *
- * 3x GbE on MT7531 + 1x 2.5G on switch port 5, 2.5G WAN on gmac1,
- * 512 MiB SPI-NAND, M.2 5G module on USB (powered by cpe-pwr).
+ * 3x GbE + 1x 2.5GbE LAN on MT7531 switch, gmac1 2.5GbE to onboard 5G module
+ * bridge, 512 MiB SPI-NAND, onboard 5G module on USB 2.0 (powered by cpe-pwr).
  *
  * Pin map / PHY / partition offsets come from NRadio's own second-system DTS
  * (mt7981-nradio-wt9103-2nd.dts + mt7981-nradio-snand-2nd.dtsi, published with
@@ -17,6 +17,7 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/leds/common.h>
+#include <dt-bindings/phy/phy.h>
 #include <dt-bindings/pinctrl/mt65xx.h>
 
 #include "mt7981b.dtsi"
@@ -26,6 +27,9 @@
 	compatible = "nradio,c8-660", "mediatek,mt7981";
 
 	aliases {
+		ethernet0 = &gmac0;
+		ethernet1 = &gmac1;
+		label-mac-device = &gmac0;
 		led-boot = &led_status;
 		led-failsafe = &led_status;
 		led-running = &led_status;
@@ -37,7 +41,6 @@
 		stdout-path = "serial0:115200n8";
 	};
 
-	/* 5G module power rail and SIM slot select, driven from userspace */
 	/* 5G module power rail and SIM slot select, exported to userspace.
 	 * The "gpio-export" driver ships in OpenWrt's generic patch
 	 * 800-GPIO-add-named-gpio-exports (built via CONFIG_GPIO_SYSFS),
@@ -124,9 +127,9 @@
 		compatible = "mediatek,eth-mac";
 		reg = <1>;
 		phy-mode = "2500base-x";
-		/* WAN 2.5G port. NRadio's own 2nd-system DTS uses fixed-link here and
-		 * leaves PHY21 unattached; upstream c8-668gl (same GPY211 PHY) wires
-		 * the PHY up instead, which keeps link/speed reporting working. */
+		/* Internal 2.5GbE link via PHY21 (GPY211B) to the onboard 5G module
+		 * bridge; external 2.5GbE RJ45 is switch port@5 (lan4 / PHY5).
+		 * Attaching phy21 keeps link/speed reporting working on eth1. */
 		phy-handle = <&phy21>;
 	};
 
@@ -276,12 +279,12 @@
 				read-only;
 			};
 
-			/* Single system: one ubi over the whole tail.
-			 * Vendor layout would be ubi(ubi_1st) 64M + app_data 16M + ubi_2nd
-			 * 0x1AA80000 here; those three are merged on purpose. */
+			/* Single system: one ubi over the whole usable tail.
+			 * NMBM (bmt-max-ratio = <1>) reserves 256 blocks (0x2000000),
+			 * so usable flash ends at 0x1e000000 -> size 0x1da80000. */
 			partition@580000 {
 				label = "ubi";
-				reg = <0x580000 0x1fa80000>;
+				reg = <0x580000 0x1da80000>;
 				compatible = "linux,ubi";
 			};
 		};
@@ -328,5 +331,10 @@
 };
 
 &xhci {
+	/* Onboard 5G module only wires USB 2.0 (`speedctl = 0` in bdinfo);
+	 * disabling the unconnected USB3 port prevents repeated SuperSpeed
+	 * link-training timeouts during boot. */
+	phys = <&u2port0 PHY_TYPE_USB2>;
+	mediatek,u3p-dis-msk = <0x01>;
 	status = "okay";
 };

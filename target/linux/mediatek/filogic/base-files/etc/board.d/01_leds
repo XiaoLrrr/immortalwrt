@@ -224,8 +224,7 @@ nradio,c8-668gl)
 nradio,c8-660|\
 nradio,wt9103)
 	ucidef_set_led_netdev "wifi" "WIFI" "blue:wlan" "phy1-ap0" "link"
-	ucidef_set_led_netdev "5g" "5G" "blue:indicator-0" "eth1" "link"
-	ucidef_set_led_netdev "4g" "4G" "blue:indicator-1" "eth1" "link"
+	ucidef_set_led_netdev "5g" "5G" "blue:indicator-0" "usb0" "link tx rx"
 	;;
 openembed,som7981)
 	ucidef_set_led_netdev "lanact" "LANACT" "amber:lan" "eth1" "rx tx"

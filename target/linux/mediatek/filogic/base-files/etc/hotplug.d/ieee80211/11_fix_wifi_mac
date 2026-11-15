@@ -224,9 +224,12 @@ case "$board" in
 		;;
 	nradio,c8-660|\
 	nradio,wt9103)
-		hw_mac_addr=$(mtd_get_mac_ascii bdinfo "fac_mac ")
-		[ "$PHYNBR" = "0" ] && echo "$hw_mac_addr" > /sys${DEVPATH}/macaddress
-		[ "$PHYNBR" = "1" ] && macaddr_setbit_la $hw_mac_addr > /sys${DEVPATH}/macaddress
+		hw_mac_addr=$(strings "$(find_mtd_chardev bdinfo)" 2>/dev/null | sed -n 's/.*fac_mac *= *\([0-9A-Fa-f:]\{17\}\).*/\1/p' | head -n 1)
+		hw_mac_addr=$(macaddr_canonicalize "$hw_mac_addr")
+		[ -n "$hw_mac_addr" ] && {
+			[ "$PHYNBR" = "0" ] && macaddr_add "$hw_mac_addr" 1 > /sys${DEVPATH}/macaddress
+			[ "$PHYNBR" = "1" ] && macaddr_setbit_la "$hw_mac_addr" > /sys${DEVPATH}/macaddress
+		}
 		;;
 	qihoo,360t7)
 		addr=$(mtd_get_mac_ascii factory lanMac)
