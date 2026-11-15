@@ -6,6 +6,8 @@ on:
     branches: [c8-660-25.12]
     paths:
       - '.github/workflows/build-c8-660.yml'
+      - 'configs/c8-660.config'
+      - 'target/linux/mediatek/**'
 
 permissions:
   contents: write
@@ -47,6 +49,16 @@ jobs:
           git clone --depth 1 https://github.com/vernesong/OpenClash.git /tmp/openclash
           cp -r /tmp/openclash/luci-app-openclash package/
           ls package/luci-app-openclash
+          # Pre-install OpenClash Mihomo (clash_meta) arm64 core for out-of-the-box offline use
+          mkdir -p files/etc/openclash/core
+          if curl -fsSL https://raw.githubusercontent.com/vernesong/OpenClash/core/master/meta/clash-linux-arm64.tar.gz \
+               | tar -xz -O clash > files/etc/openclash/core/clash_meta; then
+            chmod 0755 files/etc/openclash/core/clash_meta
+            ls -lh files/etc/openclash/core/clash_meta
+          else
+            rm -f files/etc/openclash/core/clash_meta
+            echo "::warning::Failed to pre-download clash_meta core; continuing without embedded core"
+          fi
 
       - name: Configure
         run: |
@@ -54,7 +66,7 @@ jobs:
           make defconfig
           grep -q '^CONFIG_TARGET_mediatek_filogic_DEVICE_nradio_c8-660=y' .config \
             || { echo "device profile not selected"; exit 1; }
-          for sym in luci-app-openclash luci-app-qmodem-next qmodem; do
+          for sym in luci-app-openclash luci-app-qmodem-next qmodem luci-theme-argon irqbalance zram-swap; do
             grep -q "^CONFIG_PACKAGE_$sym=y" .config || { echo "package $sym not selected"; exit 1; }
           done
           grep -E 'CONFIG_TARGET_(BOARD|SUBTARGET)|DEVICE_nradio|CONFIG_PACKAGE_luci=' .config
